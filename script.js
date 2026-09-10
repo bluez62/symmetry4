@@ -1,74 +1,260 @@
-function handleTouchStart(e) {
-    e.preventDefault();
-    if (e.touches.length === 1) {
-        startDrawing(e);
-    }
-}
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const guideCanvas = document.getElementById('guideCanvas');
+const gCtx = guideCanvas.getContext('2d');
 
-function handleTouchMove(e) {
-    e.preventDefault();
-    if (e.touches.length === 1) {
-        draw(e);
-    }
-}
+// UI Controls
+const symmetryMode = document.getElementById('symmetryMode');
+const slicesContainer = document.getElementById('slicesContainer');
+const slicesPicker = document.getElementById('slicesPicker');
+const slicesVal = document.getElementById('slicesVal');
+const brushType = document.getElementById('brushType');
+const colorPicker = document.getElementById('colorPicker');
+const neonGlow = document.getElementById('neonGlow');
+const showGuides = document.getElementById('showGuides');
+const sizePicker = document.getElementById('sizePicker');
+const opacityPicker = document.getElementById('opacityPicker');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const clearBtn = document.getElementById('clearBtn');
+const downloadBtn = document.getElementById('downloadBtn');
 
-const canvas = document.getElementById('drawCanvas'), ctx = canvas.getContext('2d'), guideCanvas = document.getElementById('guideCanvas'), gCtx = guideCanvas.getContext('2d'), symmetryMode = document.getElementById('symmetryMode'), slicesContainer = document.getElementById('slicesContainer'), slicesPicker = document.getElementById('slicesPicker'), slicesVal = document.getElementById('slicesVal'), brushType = document.getElementById('brushType'), colorPicker = document.getElementById('colorPicker'), neonGlow = document.getElementById('neonGlow'), showGuides = document.getElementById('showGuides'), sizePicker = document.getElementById('sizePicker'), opacityPicker = document.getElementById('opacityPicker'), undoBtn = document.getElementById('undoBtn'), redoBtn = document.getElementById('redoBtn'), clearBtn = document.getElementById('clearBtn'), downloadBtn = document.getElementById('downloadBtn'); let isDrawing = !1, lastX = 0, lastY = 0, currentStrokeColor = '#00ffcc', rainbowHue = 0; const centerX = canvas.width / 2, centerY = canvas.height / 2; let undoStack = [], redoStack = []; const MAX_STATES = 20; saveState(); symmetryMode.addEventListener('change', () => { slicesContainer.style.display = 'kaleidoscope' === symmetryMode.value ? 'flex' : 'none'; drawGuidelines() }); slicesPicker.addEventListener('input', () => { slicesVal.textContent = slicesPicker.value; drawGuidelines() }); showGuides.addEventListener('change', drawGuidelines); brushType.addEventListener('change', () => { colorPicker.disabled = 'fixed' !== brushType.value }); // Existing mouse event listeners
+// Drawing Variables
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let currentStrokeColor = '#00ffcc';
+let rainbowHue = 0;
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+
+// History Stack using ImageData
+let undoStack = [];
+let redoStack = [];
+const MAX_STATES = 25;
+
+saveState();
+drawGuidelines();
+
+// Event Listeners
+symmetryMode.addEventListener('change', () => {
+    slicesContainer.style.display = 'kaleidoscope' === symmetryMode.value ? 'flex' : 'none';
+    drawGuidelines();
+});
+
+slicesPicker.addEventListener('input', () => {
+    slicesVal.textContent = slicesPicker.value;
+    drawGuidelines();
+});
+
+showGuides.addEventListener('change', drawGuidelines);
+brushType.addEventListener('change', () => {
+    colorPicker.disabled = 'fixed' !== brushType.value;
+});
+
+// Canvas Input Listeners
 guideCanvas.addEventListener('mousedown', startDrawing);
 guideCanvas.addEventListener('mousemove', draw);
 window.addEventListener('mouseup', stopDrawing);
 
-guideCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-guideCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+guideCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+guideCanvas.addEventListener('touchmove', draw, { passive: false });
 window.addEventListener('touchend', stopDrawing);
 window.addEventListener('touchcancel', stopDrawing);
-clearBtn.addEventListener('click', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); saveState() }); undoBtn.addEventListener('click', undo); redoBtn.addEventListener('click', redo); drawGuidelines(); function startDrawing(e) {
-    isDrawing = !0;
-    const t = guideCanvas.getBoundingClientRect();
 
-    // 📱 Check if touch event, otherwise use mouse event
+clearBtn.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    saveState();
+});
+
+undoBtn.addEventListener('click', undo);
+redoBtn.addEventListener('click', redo);
+
+// Keyboard Shortcuts (Ctrl+Z / Ctrl+Y)
+window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) redo();
+        else undo();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        redo();
+    }
+});
+
+function getPointerPos(e) {
+    const rect = guideCanvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+}
 
-    lastX = clientX - t.left;
-    lastY = clientY - t.top;
+function startDrawing(e) {
+    if (e.type.startsWith('touch')) e.preventDefault();
+    isDrawing = true;
+    
+    const pos = getPointerPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
 
     if ('rainbow-click' === brushType.value) {
-        currentStrokeColor = `hsl(${Math.floor(360 * Math.random())}, 100%, 60%)`
+        currentStrokeColor = `hsl(${Math.floor(360 * Math.random())}, 100%, 60%)`;
     } else if ('fixed' === brushType.value) {
-        currentStrokeColor = colorPicker.value
+        currentStrokeColor = colorPicker.value;
     }
 }
+
 function draw(e) {
     if (!isDrawing) return;
-    const t = guideCanvas.getBoundingClientRect();
+    if (e.type.startsWith('touch')) e.preventDefault();
 
-    // 📱 Check if touch event, otherwise use mouse event
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const n = clientX - t.left, o = clientY - t.top;
+    const pos = getPointerPos(e);
 
     if ('rainbow-cycle' === brushType.value) {
         rainbowHue = (rainbowHue + 2) % 360;
-        currentStrokeColor = `hsl(${rainbowHue}, 100%, 60%)`
+        currentStrokeColor = `hsl(${rainbowHue}, 100%, 60%)`;
     }
+
     ctx.globalAlpha = opacityPicker.value / 100;
     ctx.strokeStyle = currentStrokeColor;
     ctx.lineWidth = sizePicker.value;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    
     if (neonGlow.checked) {
         ctx.shadowBlur = 1.5 * sizePicker.value;
-        ctx.shadowColor = currentStrokeColor
+        ctx.shadowColor = currentStrokeColor;
     } else {
-        ctx.shadowBlur = 0
+        ctx.shadowBlur = 0;
     }
+
     if ('4-corner' === symmetryMode.value) {
-        drawFourCorners(lastX, lastY, n, o)
+        drawFourCorners(lastX, lastY, pos.x, pos.y);
     } else {
-        drawKaleidoscope(lastX, lastY, n, o)
+        drawKaleidoscope(lastX, lastY, pos.x, pos.y);
     }
-    lastX = n;
-    lastY = o
+
+    lastX = pos.x;
+    lastY = pos.y;
 }
-function stopDrawing() { if (isDrawing) { isDrawing = !1; saveState() } } function drawLine(e, t, n, o) { ctx.beginPath(); ctx.moveTo(e, t); ctx.lineTo(n, o); ctx.stroke() } function drawFourCorners(e, t, n, o) { drawLine(e, t, n, o); drawLine(centerX + (centerX - e), t, centerX + (centerX - n), o); drawLine(e, centerY + (centerY - t), n, centerY + (centerY - o)); drawLine(centerX + (centerX - e), centerY + (centerY - t), centerX + (centerX - n), centerY + (centerY - o)) } function drawKaleidoscope(e, t, n, o) { const r = parseInt(slicesPicker.value), a = 2 * Math.PI / r, i = e - centerX, c = t - centerY, s = n - centerX, l = o - centerY; for (let e = 0; e < r; e++) { ctx.save(); ctx.translate(centerX, centerY); ctx.rotate(a * e); ctx.beginPath(); ctx.moveTo(i, c); ctx.lineTo(s, l); ctx.stroke(); ctx.scale(1, -1); ctx.beginPath(); ctx.moveTo(i, c); ctx.lineTo(s, l); ctx.stroke(); ctx.restore() } } function drawGuidelines() { gCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height); if (!showGuides.checked) return; gCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; gCtx.lineWidth = 1; if ('4-corner' === symmetryMode.value) { gCtx.beginPath(); gCtx.moveTo(centerX, 0); gCtx.lineTo(centerX, canvas.height); gCtx.moveTo(0, centerY); gCtx.lineTo(canvas.width, centerY); gCtx.stroke() } else { const e = parseInt(slicesPicker.value); for (let t = 0; t < e / 2; t++) { const n = 2 * Math.PI / e * t; gCtx.beginPath(); gCtx.moveTo(centerX + 450 * Math.cos(n), centerY + 450 * Math.sin(n)); gCtx.lineTo(centerX - 450 * Math.cos(n), centerY - 450 * Math.sin(n)); gCtx.stroke() } } } function saveState() { if (undoStack.length >= MAX_STATES) undoStack.shift(); undoStack.push(canvas.toDataURL()); redoStack = []; updateHistoryButtons() } function undo() { if (!(undoStack.length <= 1)) { redoStack.push(undoStack.pop()); loadState(undoStack[undoStack.length - 1]) } } function redo() { if (0 !== redoStack.length) { const e = redoStack.pop(); undoStack.push(e); loadState(e) } } function loadState(e) { const t = new Image; t.src = e; t.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.drawImage(t, 0, 0); updateHistoryButtons() } } function updateHistoryButtons() { undoBtn.disabled = undoStack.length <= 1; redoBtn.disabled = 0 === redoStack.length } downloadBtn.addEventListener('click', () => { const e = document.createElement('canvas'); e.width = canvas.width; e.height = canvas.height; const t = e.getContext('2d'); t.fillStyle = '#1e1e1e'; t.fillRect(0, 0, e.width, e.height); t.drawImage(canvas, 0, 0); const n = document.createElement('a'); n.download = 'ultimate-symmetry-artwork.png'; n.href = e.toDataURL('image/png'); n.click() });
+
+function stopDrawing() {
+    if (isDrawing) {
+        isDrawing = false;
+        saveState();
+    }
+}
+
+function drawLine(x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+function drawFourCorners(x1, y1, x2, y2) {
+    drawLine(x1, y1, x2, y2);
+    drawLine(2 * centerX - x1, y1, 2 * centerX - x2, y2);
+    drawLine(x1, 2 * centerY - y1, x2, 2 * centerY - y2);
+    drawLine(2 * centerX - x1, 2 * centerY - y1, 2 * centerX - x2, 2 * centerY - y2);
+}
+
+function drawKaleidoscope(x1, y1, x2, y2) {
+    const slices = parseInt(slicesPicker.value, 10);
+    const angle = (2 * Math.PI) / slices;
+    const dx1 = x1 - centerX;
+    const dy1 = y1 - centerY;
+    const dx2 = x2 - centerX;
+    const dy2 = y2 - centerY;
+
+    for (let i = 0; i < slices; i++) {
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle * i);
+        
+        ctx.beginPath();
+        ctx.moveTo(dx1, dy1);
+        ctx.lineTo(dx2, dy2);
+        ctx.stroke();
+
+        ctx.scale(1, -1);
+        ctx.beginPath();
+        ctx.moveTo(dx1, dy1);
+        ctx.lineTo(dx2, dy2);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+function drawGuidelines() {
+    gCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+    if (!showGuides.checked) return;
+
+    gCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    gCtx.lineWidth = 1;
+
+    if ('4-corner' === symmetryMode.value) {
+        gCtx.beginPath();
+        gCtx.moveTo(centerX, 0);
+        gCtx.lineTo(centerX, canvas.height);
+        gCtx.moveTo(0, centerY);
+        gCtx.lineTo(canvas.width, centerY);
+        gCtx.stroke();
+    } else {
+        const slices = parseInt(slicesPicker.value, 10);
+        for (let i = 0; i < slices / 2; i++) {
+            const rad = (2 * Math.PI / slices) * i;
+            gCtx.beginPath();
+            gCtx.moveTo(centerX + 450 * Math.cos(rad), centerY + 450 * Math.sin(rad));
+            gCtx.lineTo(centerX - 450 * Math.cos(rad), centerY - 450 * Math.sin(rad));
+            gCtx.stroke();
+        }
+    }
+}
+
+function saveState() {
+    if (undoStack.length >= MAX_STATES) undoStack.shift();
+    undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    redoStack = [];
+    updateHistoryButtons();
+}
+
+function undo() {
+    if (undoStack.length > 1) {
+        redoStack.push(undoStack.pop());
+        ctx.putImageData(undoStack[undoStack.length - 1], 0, 0);
+        updateHistoryButtons();
+    }
+}
+
+function redo() {
+    if (redoStack.length > 0) {
+        const state = redoStack.pop();
+        undoStack.push(state);
+        ctx.putImageData(state, 0, 0);
+        updateHistoryButtons();
+    }
+}
+
+function updateHistoryButtons() {
+    undoBtn.disabled = undoStack.length <= 1;
+    redoBtn.disabled = redoStack.length === 0;
+}
+
+downloadBtn.addEventListener('click', () => {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = canvas.width;
+    exportCanvas.height = canvas.height;
+    const eCtx = exportCanvas.getContext('2d');
+
+    eCtx.fillStyle = '#1e1e1e';
+    eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    eCtx.drawImage(canvas, 0, 0);
+
+    const link = document.createElement('a');
+    link.download = 'symmetry-artwork.png';
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+});

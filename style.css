@@ -1,50 +1,74 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     background-color: #121212;
     color: #fff;
-    font-family: sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    overflow: hidden
+    min-height: 100vh;
+    padding: 1rem;
 }
 
 h1 {
-    margin: 5px 0;
-    font-size: 1.4rem
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
 }
 
 #controls {
-    margin-bottom: 12px;
     display: flex;
-    gap: 15px;
+    gap: 12px;
     align-items: center;
     background: #252525;
-    padding: 12px 20px;
+    padding: 12px;
     border-radius: 8px;
     flex-wrap: wrap;
-    justify-content: center
+    justify-content: center;
+    max-width: 900px;
+    margin-bottom: 1rem;
 }
 
 .control-group {
     display: flex;
     align-items: center;
     gap: 8px;
-    border-right: 1px solid #444;
-    padding-right: 15px
+    padding: 4px 8px;
+    background: #1e1e1e;
+    border-radius: 6px;
 }
 
-.control-group:last-child {
-    border-right: none;
-    padding-right: 0
+.inline-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.canvas-wrapper {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background-color: #1e1e1e;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 canvas {
-    background-color: transparent;
-    border-radius: 6px
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
+
+#drawCanvas { z-index: 1; }
+#guideCanvas { z-index: 2; cursor: crosshair; }
 
 button {
     background-color: #444;
@@ -53,57 +77,37 @@ button {
     padding: 6px 14px;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: 700
+    font-weight: 600;
+    transition: background-color 0.2s ease;
 }
 
-button:hover {
-    background-color: #666
+button:hover:not(:disabled) {
+    background-color: #555;
 }
 
 button:disabled {
-    opacity: .3
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
-#downloadBtn {
-    background-color: #00aa66
+button.primary-btn {
+    background-color: #00aa66;
 }
 
-#downloadBtn:hover {
-    background-color: #00cc77
-}
-
-input[disabled],
-select[disabled] {
-    opacity: .3
+button.primary-btn:hover:not(:disabled) {
+    background-color: #00cc77;
 }
 
 label {
-    font-size: .9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
-    gap: 5px
+    gap: 5px;
 }
 
 @media (max-width: 650px) {
-    body {
-        height: auto;
-        overflow: auto;
-        padding: 10px;
-    }
-
-    #controls {
-        padding: 8px;
-        gap: 8px;
-    }
-
-    /* Scale down the drawing area wrapper dynamically */
-    div[style*="width:600px"] {
-        width: 90vw !important;
-        height: 90vw !important;
-    }
-
-    canvas {
-        width: 100% !important;
-        height: 100% !important;
+    .canvas-wrapper {
+        width: 90vw;
+        height: 90vw;
     }
 }
