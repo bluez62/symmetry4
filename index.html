@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-Corner Mirror Drawing</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin: 5px 0;
+            font-size: 1.2rem;
+        }
+
+        #controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #1e1e1e;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            cursor: crosshair;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>4-Corner Symmetry Drawing</h1>
+    <div id="controls">
+        <label>Color: <input type="color" id="colorPicker" value="#00ffcc"></label>
+        <label>Size: <input type="range" id="sizePicker" min="1" max="20" value="4"></label>
+        <button id="clearBtn">Clear Canvas</button>
+    </div>
+
+    <canvas id="drawCanvas" width="600" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const sizePicker = document.getElementById('sizePicker');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineWidth = sizePicker.value;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Calculate coordinates for all 4 quadrants (mirroring X and Y)
+            // Quadrant 1 (Original)
+            drawLine(lastX, lastY, currentX, currentY);
+
+            // Quadrant 2 (Mirrored X)
+            const refX1 = centerX + (centerX - lastX);
+            const curX1 = centerX + (centerX - currentX);
+            drawLine(refX1, lastY, curX1, currentY);
+
+            // Quadrant 3 (Mirrored Y)
+            const refY2 = centerY + (centerY - lastY);
+            const curY2 = centerY + (centerY - currentY);
+            drawLine(lastX, refY2, currentX, curY2);
+
+            // Quadrant 4 (Mirrored X and Y)
+            drawLine(refX1, refY2, curX1, curY2);
+
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        function drawLine(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+    </script>
+</body>
+</html>
