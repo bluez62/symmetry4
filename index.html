@@ -30,6 +30,7 @@
                 <label for="slicesPicker">Slices:</label>
                 <input type="range" id="slicesPicker" min="4" max="32" step="2" value="12">
                 <span id="slicesVal">12</span>
+                <label><input type="checkbox" id="mirrorSlices" checked> Mirror Slices</label>
             </div>
         </div>
 
@@ -39,6 +40,8 @@
                 <option value="rainbow-click">Random Color / Click</option>
                 <option value="rainbow-cycle">Continuous Rainbow</option>
                 <option value="fixed">Fixed Color</option>
+                <option value="spray">Dotted Spray</option>
+                <option value="calligraphy">Neon Calligraphy</option>
             </select>
             <input type="color" id="colorPicker" value="#00ffcc" aria-label="Brush color picker" disabled>
         </div>
@@ -57,6 +60,11 @@
         </div>
 
         <div class="control-group">
+            <label>Origin:</label>
+            <button id="resetOriginBtn" style="padding: 2px 8px; font-size: 0.75rem;">Reset Center</button>
+        </div>
+
+        <div class="control-group">
             <button id="clearBtn">Clear</button>
             <button id="downloadBtn" class="primary-btn">Download Image</button>
         </div>
@@ -66,6 +74,11 @@
         <canvas id="drawCanvas" width="600" height="600"></canvas>
         <canvas id="guideCanvas" width="600" height="600"></canvas>
     </main>
+
+    <footer id="tipBar">
+        <span class="tip-icon"></span> 
+        <span id="tipText">Pro-Tip: Hold <kbd>Shift</kbd> and click anywhere on the canvas to relocate the symmetry center!</span>
+    </footer>
 
     <script src="script.js"></script>
 </body>

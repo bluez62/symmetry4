@@ -111,3 +111,54 @@ label {
         height: 90vw;
     }
 }
+
+#tipBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #252525;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #b3b3b3;
+    max-width: 600px;
+    width: 100%;
+    margin-top: 1rem;
+    border-left: 4px solid #00ffcc;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+}
+
+#tipBar.active-hint {
+    background: #1a332e;
+    color: #fff;
+    border-left-color: #00ffaa;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+    transform: scale(1.02);
+}
+
+.tip-icon {
+    font-size: 1.1rem;
+}
+
+kbd {
+    background-color: #444;
+    border-radius: 3px;
+    border: 1px solid #666;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 0 2px #222 inset;
+    color: #fff;
+    display: inline-block;
+    font-family: monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+    padding: 2px 5px;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+#tipBar.active-hint kbd {
+    background-color: #00ffcc;
+    color: #121212;
+    border-color: #fff;
+}

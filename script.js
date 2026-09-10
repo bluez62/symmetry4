@@ -8,6 +8,7 @@ const symmetryMode = document.getElementById('symmetryMode');
 const slicesContainer = document.getElementById('slicesContainer');
 const slicesPicker = document.getElementById('slicesPicker');
 const slicesVal = document.getElementById('slicesVal');
+const mirrorSlices = document.getElementById('mirrorSlices');
 const brushType = document.getElementById('brushType');
 const colorPicker = document.getElementById('colorPicker');
 const neonGlow = document.getElementById('neonGlow');
@@ -18,6 +19,11 @@ const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
 const clearBtn = document.getElementById('clearBtn');
 const downloadBtn = document.getElementById('downloadBtn');
+const bgColorPicker = document.getElementById('bgColorPicker');
+const canvasWrapper = document.querySelector('.canvas-wrapper');
+const resetOriginBtn = document.getElementById('resetOriginBtn');
+const tipBar = document.getElementById('tipBar');
+const tipText = document.getElementById('tipText');
 
 // Drawing Variables
 let isDrawing = false;
@@ -25,17 +31,15 @@ let lastX = 0;
 let lastY = 0;
 let currentStrokeColor = '#00ffcc';
 let rainbowHue = 0;
-const centerX = canvas.width / 2;
-const centerY = canvas.height / 2;
+
+// Dynamic Symmetry Origin Point
+let centerX = canvas.width / 2;
+let centerY = canvas.height / 2;
 
 // History Stack using ImageData
 let undoStack = [];
 let redoStack = [];
 const MAX_STATES = 25;
-
-// Add to UI Controls DOM elements section
-const bgColorPicker = document.getElementById('bgColorPicker');
-const canvasWrapper = document.querySelector('.canvas-wrapper');
 
 saveState();
 drawGuidelines();
@@ -55,9 +59,17 @@ slicesPicker.addEventListener('input', () => {
     drawGuidelines();
 });
 
+mirrorSlices.addEventListener('change', drawGuidelines);
 showGuides.addEventListener('change', drawGuidelines);
+
 brushType.addEventListener('change', () => {
-    colorPicker.disabled = 'fixed' !== brushType.value;
+    colorPicker.disabled = ('fixed' !== brushType.value && 'spray' !== brushType.value && 'calligraphy' !== brushType.value);
+});
+
+resetOriginBtn.addEventListener('click', () => {
+    centerX = canvas.width / 2;
+    centerY = canvas.height / 2;
+    drawGuidelines();
 });
 
 // Canvas Input Listeners
@@ -100,15 +112,24 @@ function getPointerPos(e) {
 
 function startDrawing(e) {
     if (e.type.startsWith('touch')) e.preventDefault();
-    isDrawing = true;
     
+    // Shift key + Click modifies the symmetry center position dynamically
+    if (e.shiftKey) {
+        const pos = getPointerPos(e);
+        centerX = pos.x;
+        centerY = pos.y;
+        drawGuidelines();
+        return;
+    }
+
+    isDrawing = true;
     const pos = getPointerPos(e);
     lastX = pos.x;
     lastY = pos.y;
 
     if ('rainbow-click' === brushType.value) {
         currentStrokeColor = `hsl(${Math.floor(360 * Math.random())}, 100%, 60%)`;
-    } else if ('fixed' === brushType.value) {
+    } else if ('fixed' === brushType.value || 'spray' === brushType.value || 'calligraphy' === brushType.value) {
         currentStrokeColor = colorPicker.value;
     }
 }
@@ -126,6 +147,7 @@ function draw(e) {
 
     ctx.globalAlpha = opacityPicker.value / 100;
     ctx.strokeStyle = currentStrokeColor;
+    ctx.fillStyle = currentStrokeColor;
     ctx.lineWidth = sizePicker.value;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -154,18 +176,43 @@ function stopDrawing() {
     }
 }
 
-function drawLine(x1, y1, x2, y2) {
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+function drawLineSegment(x1, y1, x2, y2) {
+    const type = brushType.value;
+    
+    if (type === 'spray') {
+        // Dotted spray pattern distribution matrix
+        const density = 30;
+        const radius = sizePicker.value * 3;
+        for (let i = 0; i < density; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * radius;
+            const dotX = x2 + r * Math.cos(angle);
+            const dotY = x2 + r * Math.sin(angle); // centered near current cursor step
+            ctx.fillRect(x2 + r * Math.cos(angle), y2 + r * Math.sin(angle), 1.5, 1.5);
+        }
+    } else if (type === 'calligraphy') {
+        // Angled ribbon effect lines
+        const width = sizePicker.value * 2;
+        ctx.beginPath();
+        ctx.moveTo(x1 - width, y1 - width);
+        ctx.lineTo(x2 - width, y2 - width);
+        ctx.lineTo(x2 + width, y2 + width);
+        ctx.lineTo(x1 + width, y1 + width);
+        ctx.fill();
+    } else {
+        // Standard geometric clean lines
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    }
 }
 
 function drawFourCorners(x1, y1, x2, y2) {
-    drawLine(x1, y1, x2, y2);
-    drawLine(2 * centerX - x1, y1, 2 * centerX - x2, y2);
-    drawLine(x1, 2 * centerY - y1, x2, 2 * centerY - y2);
-    drawLine(2 * centerX - x1, 2 * centerY - y1, 2 * centerX - x2, 2 * centerY - y2);
+    drawLineSegment(x1, y1, x2, y2);
+    drawLineSegment(2 * centerX - x1, y1, 2 * centerX - x2, y2);
+    drawLineSegment(x1, 2 * centerY - y1, x2, 2 * centerY - y2);
+    drawLineSegment(2 * centerX - x1, 2 * centerY - y1, 2 * centerX - x2, 2 * centerY - y2);
 }
 
 function drawKaleidoscope(x1, y1, x2, y2) {
@@ -181,16 +228,12 @@ function drawKaleidoscope(x1, y1, x2, y2) {
         ctx.translate(centerX, centerY);
         ctx.rotate(angle * i);
         
-        ctx.beginPath();
-        ctx.moveTo(dx1, dy1);
-        ctx.lineTo(dx2, dy2);
-        ctx.stroke();
+        drawLineSegment(dx1, dy1, dx2, dy2);
 
-        ctx.scale(1, -1);
-        ctx.beginPath();
-        ctx.moveTo(dx1, dy1);
-        ctx.lineTo(dx2, dy2);
-        ctx.stroke();
+        if (mirrorSlices.checked) {
+            ctx.scale(1, -1);
+            drawLineSegment(dx1, dy1, dx2, dy2);
+        }
 
         ctx.restore();
     }
@@ -202,6 +245,11 @@ function drawGuidelines() {
 
     gCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     gCtx.lineWidth = 1;
+
+    // Draw origin visual confirmation center indicator
+    gCtx.beginPath();
+    gCtx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+    gCtx.stroke();
 
     if ('4-corner' === symmetryMode.value) {
         gCtx.beginPath();
@@ -215,8 +263,8 @@ function drawGuidelines() {
         for (let i = 0; i < slices / 2; i++) {
             const rad = (2 * Math.PI / slices) * i;
             gCtx.beginPath();
-            gCtx.moveTo(centerX + 450 * Math.cos(rad), centerY + 450 * Math.sin(rad));
-            gCtx.lineTo(centerX - 450 * Math.cos(rad), centerY - 450 * Math.sin(rad));
+            gCtx.moveTo(centerX + 600 * Math.cos(rad), centerY + 600 * Math.sin(rad));
+            gCtx.lineTo(centerX - 600 * Math.cos(rad), centerY - 600 * Math.sin(rad));
             gCtx.stroke();
         }
     }
@@ -257,7 +305,6 @@ downloadBtn.addEventListener('click', () => {
     exportCanvas.height = canvas.height;
     const eCtx = exportCanvas.getContext('2d');
 
-    // Use selected background color instead of hardcoded '#1e1e1e'
     eCtx.fillStyle = bgColorPicker.value;
     eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
     eCtx.drawImage(canvas, 0, 0);
@@ -266,4 +313,18 @@ downloadBtn.addEventListener('click', () => {
     link.download = 'symmetry-artwork.png';
     link.href = exportCanvas.toDataURL('image/png');
     link.click();
+});
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift') {
+        tipBar.classList.add('active-hint');
+        tipText.innerHTML = '<strong>Ready!</strong> Click anywhere on the canvas to drop a new symmetry center point.';
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        tipBar.classList.remove('active-hint');
+        tipText.innerHTML = 'Pro-Tip: Hold <kbd>Shift</kbd> and click anywhere on the canvas to relocate the symmetry center!';
+    }
 });
