@@ -24,6 +24,7 @@ const canvasWrapper = document.querySelector('.canvas-wrapper');
 const resetOriginBtn = document.getElementById('resetOriginBtn');
 const tipBar = document.getElementById('tipBar');
 const tipText = document.getElementById('tipText');
+const toggleMoveCenterBtn = document.getElementById('toggleMoveCenterBtn');
 
 // Drawing Variables
 let isDrawing = false;
@@ -41,8 +42,34 @@ let undoStack = [];
 let redoStack = [];
 const MAX_STATES = 25;
 
+let isMovingCenterMode = false;
+
 saveState();
 drawGuidelines();
+
+toggleMoveCenterBtn.addEventListener('click', () => {
+    isMovingCenterMode = !isMovingCenterMode;
+    if (isMovingCenterMode) {
+        activateCenterHintMode();
+    } else {
+        deactivateCenterHintMode();
+    }
+});
+
+function activateCenterHintMode() {
+    toggleMoveCenterBtn.classList.add('active-toggle');
+    toggleMoveCenterBtn.textContent = 'Cancel';
+    tipBar.classList.add('active-hint');
+    tipText.innerHTML = '<strong>Ready!</strong> Tap or click anywhere on the canvas to drop a new symmetry center point.';
+}
+
+function deactivateCenterHintMode() {
+    isMovingCenterMode = false;
+    toggleMoveCenterBtn.classList.remove('active-toggle');
+    toggleMoveCenterBtn.textContent = 'Set Center';
+    tipBar.classList.remove('active-hint');
+    tipText.innerHTML = 'Pro-Tip: Tap <kbd>Set Center</kbd> or hold <kbd>Shift</kbd> and click to relocate the symmetry center!';
+}
 
 bgColorPicker.addEventListener('input', (e) => {
     canvasWrapper.style.backgroundColor = e.target.value;
@@ -113,12 +140,15 @@ function getPointerPos(e) {
 function startDrawing(e) {
     if (e.type.startsWith('touch')) e.preventDefault();
     
-    // Shift key + Click modifies the symmetry center position dynamically
-    if (e.shiftKey) {
+    // Check if Shift key is down OR if the mobile toggle button was pressed
+    if (e.shiftKey || isMovingCenterMode) {
         const pos = getPointerPos(e);
         centerX = pos.x;
         centerY = pos.y;
         drawGuidelines();
+        
+        // Auto-turn off the mode once the point is dropped
+        deactivateCenterHintMode();
         return;
     }
 
