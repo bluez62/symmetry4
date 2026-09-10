@@ -10,6 +10,7 @@ const slicesPicker = document.getElementById('slicesPicker');
 const slicesVal = document.getElementById('slicesVal');
 const mirrorSlices = document.getElementById('mirrorSlices');
 const brushType = document.getElementById('brushType');
+const colorMode = document.getElementById('colorMode');
 const colorPicker = document.getElementById('colorPicker');
 const neonGlow = document.getElementById('neonGlow');
 const showGuides = document.getElementById('showGuides');
@@ -30,7 +31,7 @@ const toggleMoveCenterBtn = document.getElementById('toggleMoveCenterBtn');
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
-let currentStrokeColor = '#00ffcc';
+let currentStrokeColor = `hsl(${Math.floor(360 * Math.random())}, 100%, 60%)`;
 let rainbowHue = 0;
 
 // Dynamic Symmetry Origin Point
@@ -46,6 +47,10 @@ let isMovingCenterMode = false;
 
 saveState();
 drawGuidelines();
+
+colorMode.addEventListener('change', () => {
+    colorPicker.disabled = ('fixed' !== colorMode.value);
+});
 
 toggleMoveCenterBtn.addEventListener('click', () => {
     isMovingCenterMode = !isMovingCenterMode;
@@ -140,14 +145,11 @@ function getPointerPos(e) {
 function startDrawing(e) {
     if (e.type.startsWith('touch')) e.preventDefault();
     
-    // Check if Shift key is down OR if the mobile toggle button was pressed
     if (e.shiftKey || isMovingCenterMode) {
         const pos = getPointerPos(e);
         centerX = pos.x;
         centerY = pos.y;
         drawGuidelines();
-        
-        // Auto-turn off the mode once the point is dropped
         deactivateCenterHintMode();
         return;
     }
@@ -157,9 +159,10 @@ function startDrawing(e) {
     lastX = pos.x;
     lastY = pos.y;
 
-    if ('rainbow-click' === brushType.value) {
+    // Color calculation now checks colorMode independently
+    if ('rainbow-click' === colorMode.value) {
         currentStrokeColor = `hsl(${Math.floor(360 * Math.random())}, 100%, 60%)`;
-    } else if ('fixed' === brushType.value || 'spray' === brushType.value || 'calligraphy' === brushType.value) {
+    } else if ('fixed' === colorMode.value) {
         currentStrokeColor = colorPicker.value;
     }
 }
@@ -170,7 +173,8 @@ function draw(e) {
 
     const pos = getPointerPos(e);
 
-    if ('rainbow-cycle' === brushType.value) {
+    // Continuous rainbow updating checks colorMode independently
+    if ('rainbow-cycle' === colorMode.value) {
         rainbowHue = (rainbowHue + 2) % 360;
         currentStrokeColor = `hsl(${rainbowHue}, 100%, 60%)`;
     }

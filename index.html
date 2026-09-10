@@ -35,16 +35,25 @@
         </div>
 
         <div class="control-group">
-            <label for="brushType">Brush:</label>
+            <!-- Brush Style Selector -->
+            <label for="brushType">Brush Style:</label>
             <select id="brushType">
-                <option value="rainbow-click">Random Color / Click</option>
-                <option value="rainbow-cycle">Continuous Rainbow</option>
-                <option value="fixed">Fixed Color</option>
+                <option value="standard">Solid Line</option>
                 <option value="spray">Dotted Spray</option>
                 <option value="calligraphy">Neon Calligraphy</option>
             </select>
+
+            <label for="colorMode">Color Mode:</label>
+            <select id="colorMode">
+                <option value="rainbow-click" selected>Random Color / Click</option>
+                <option value="fixed">Fixed Color</option>
+                <option value="rainbow-cycle">Continuous Rainbow</option>
+            </select>
+            <!-- Disabled by default since Random Color is active -->
             <input type="color" id="colorPicker" value="#00ffcc" aria-label="Brush color picker" disabled>
+
         </div>
+
 
         <div class="control-group">
             <label><input type="checkbox" id="neonGlow" checked> Neon Glow</label>
