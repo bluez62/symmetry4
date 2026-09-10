@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4-Corner Mirror Drawing</title>
+    <title>Uhh... Symmetrical Drawing Thing!</title>
     <style>
         body {
             margin: 0;
@@ -31,6 +31,8 @@
             background: #252525;
             padding: 10px 15px;
             border-radius: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .control-group {
@@ -60,6 +62,14 @@
             background-color: #666;
         }
 
+        #downloadBtn {
+            background-color: #00aa66;
+        }
+
+        #downloadBtn:hover {
+            background-color: #00cc77;
+        }
+
         input[disabled] {
             opacity: 0.3;
             cursor: not-allowed;
@@ -68,7 +78,7 @@
 </head>
 <body>
 
-    <h1>4-Corner Symmetry Drawing</h1>
+    <h1>symmetrical drawing thing!!</h1>
     <div id="controls">
         <div class="control-group">
             <label><input type="checkbox" id="randomMode" checked> Random Color Each Click</label>
@@ -80,6 +90,7 @@
             <label>Size: <input type="range" id="sizePicker" min="1" max="20" value="4"></label>
         </div>
         <button id="clearBtn">Clear Canvas</button>
+        <button id="downloadBtn">Download Image</button>
     </div>
 
     <canvas id="drawCanvas" width="600" height="600"></canvas>
@@ -91,6 +102,7 @@
         const colorPicker = document.getElementById('colorPicker');
         const sizePicker = document.getElementById('sizePicker');
         const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
 
         let isDrawing = false;
         let lastX = 0;
@@ -100,7 +112,6 @@
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
 
-        // Toggle manual color picker availability
         randomMode.addEventListener('change', () => {
             colorPicker.disabled = randomMode.checked;
         });
@@ -114,8 +125,27 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
+        downloadBtn.addEventListener('click', () => {
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = canvas.width;
+            exportCanvas.height = canvas.height;
+            const exportCtx = exportCanvas.getContext('2d');
+
+            exportCtx.fillStyle = '#1e1e1e';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            exportCtx.drawImage(canvas, 0, 0);
+
+            const imageURI = exportCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'symmetry-artwork.png';
+            link.href = imageURI;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
         function getRandomColor() {
-            // Generates bright, vibrant neon colors using HSL
             const hue = Math.floor(Math.random() * 360);
             return `hsl(${hue}, 100%, 60%)`;
         }
@@ -126,7 +156,6 @@
             lastX = e.clientX - rect.left;
             lastY = e.clientY - rect.top;
 
-            // Pick a color for this entire click sequence
             if (randomMode.checked) {
                 currentStrokeColor = getRandomColor();
             } else {
@@ -146,20 +175,16 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // Quadrant 1 (Original)
             drawLine(lastX, lastY, currentX, currentY);
 
-            // Quadrant 2 (Mirrored X)
             const refX1 = centerX + (centerX - lastX);
             const curX1 = centerX + (centerX - currentX);
             drawLine(refX1, lastY, curX1, currentY);
 
-            // Quadrant 3 (Mirrored Y)
             const refY2 = centerY + (centerY - lastY);
             const curY2 = centerY + (centerY - currentY);
             drawLine(lastX, refY2, currentX, curY2);
 
-            // Quadrant 4 (Mirrored X and Y)
             drawLine(refX1, refY2, curX1, curY2);
 
             lastX = currentX;
