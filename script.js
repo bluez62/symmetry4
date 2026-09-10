@@ -33,8 +33,16 @@ let undoStack = [];
 let redoStack = [];
 const MAX_STATES = 25;
 
+// Add to UI Controls DOM elements section
+const bgColorPicker = document.getElementById('bgColorPicker');
+const canvasWrapper = document.querySelector('.canvas-wrapper');
+
 saveState();
 drawGuidelines();
+
+bgColorPicker.addEventListener('input', (e) => {
+    canvasWrapper.style.backgroundColor = e.target.value;
+});
 
 // Event Listeners
 symmetryMode.addEventListener('change', () => {
@@ -249,7 +257,8 @@ downloadBtn.addEventListener('click', () => {
     exportCanvas.height = canvas.height;
     const eCtx = exportCanvas.getContext('2d');
 
-    eCtx.fillStyle = '#1e1e1e';
+    // Use selected background color instead of hardcoded '#1e1e1e'
+    eCtx.fillStyle = bgColorPicker.value;
     eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
     eCtx.drawImage(canvas, 0, 0);
 
