@@ -8,6 +8,7 @@
 </head>
 <body>
     <h1>Symmetry 4</h1>
+    <p class="sub-heading">By Bluez62</p>
     
     <header id="controls">
         <div class="control-group">
@@ -41,6 +42,9 @@
                 <option value="standard">Solid Line</option>
                 <option value="spray">Dotted Spray</option>
                 <option value="calligraphy">Neon Calligraphy</option>
+                <option value="eraser">Eraser</option>
+                <option value="marker">Highlighter / Marker</option>
+                <option value="charcoal">Charcoal / Pencil</option>
             </select>
 
             <label for="colorMode">Color Mode:</label>
@@ -52,6 +56,13 @@
             <!-- Disabled by default since Random Color is active -->
             <input type="color" id="colorPicker" value="#00ffcc" aria-label="Brush color picker" disabled>
 
+            <div id="paletteContainer" class="palette-presets">
+                <span class="palette-swatch" data-color="#ff3366" style="background-color: #ff3366;"></span>
+                <span class="palette-swatch" data-color="#00ffcc" style="background-color: #00ffcc;"></span>
+                <span class="palette-swatch" data-color="#ffcc00" style="background-color: #ffcc00;"></span>
+                <span class="palette-swatch" data-color="#9933ff" style="background-color: #9933ff;"></span>
+                <span class="palette-swatch" data-color="#ffffff" style="background-color: #ffffff;"></span>
+            </div>
         </div>
 
 

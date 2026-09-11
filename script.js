@@ -48,6 +48,16 @@ let isMovingCenterMode = false;
 saveState();
 drawGuidelines();
 
+document.querySelectorAll('.palette-swatch').forEach(swatch => {
+    swatch.addEventListener('click', (e) => {
+        const selectedColor = e.target.getAttribute('data-color');
+        colorPicker.value = selectedColor;
+        colorMode.value = 'fixed';
+        colorPicker.disabled = false;
+        currentStrokeColor = selectedColor;
+    });
+});
+
 colorMode.addEventListener('change', () => {
     colorPicker.disabled = ('fixed' !== colorMode.value);
 });
@@ -213,19 +223,27 @@ function stopDrawing() {
 function drawLineSegment(x1, y1, x2, y2) {
     const type = brushType.value;
     
+    // Configure eraser composite operation
+    if (type === 'eraser') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+        return;
+    }
+
     if (type === 'spray') {
-        // Dotted spray pattern distribution matrix
         const density = 30;
         const radius = sizePicker.value * 3;
         for (let i = 0; i < density; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = Math.random() * radius;
-            const dotX = x2 + r * Math.cos(angle);
-            const dotY = x2 + r * Math.sin(angle); // centered near current cursor step
             ctx.fillRect(x2 + r * Math.cos(angle), y2 + r * Math.sin(angle), 1.5, 1.5);
         }
     } else if (type === 'calligraphy') {
-        // Angled ribbon effect lines
         const width = sizePicker.value * 2;
         ctx.beginPath();
         ctx.moveTo(x1 - width, y1 - width);
@@ -233,8 +251,29 @@ function drawLineSegment(x1, y1, x2, y2) {
         ctx.lineTo(x2 + width, y2 + width);
         ctx.lineTo(x1 + width, y1 + width);
         ctx.fill();
+    } else if (type === 'marker') {
+        // Semi-transparent layered marker stroke
+        ctx.save();
+        ctx.lineCap = 'square';
+        ctx.lineWidth = sizePicker.value * 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+    } else if (type === 'charcoal') {
+        // Textured multi-grain line effect
+        const particles = 1;
+        for (let i = 0; i < particles; i++) {
+            const offsetX = (Math.random() - 0.5) * sizePicker.value;
+            const offsetY = (Math.random() - 0.5) * sizePicker.value;
+            ctx.beginPath();
+            ctx.moveTo(x1 + offsetX, y1 + offsetY);
+            ctx.lineTo(x2 + offsetX, y2 + offsetY);
+            ctx.stroke();
+        }
     } else {
-        // Standard geometric clean lines
+        // Standard line
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
