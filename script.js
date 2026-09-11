@@ -92,7 +92,9 @@ bgColorPicker.addEventListener('input', (e) => {
 
 // Event Listeners
 symmetryMode.addEventListener('change', () => {
-    slicesContainer.style.display = 'kaleidoscope' === symmetryMode.value ? 'flex' : 'none';
+    const mode = symmetryMode.value;
+    const usesSlices = (mode === 'kaleidoscope' || mode === 'radial-star');
+    slicesContainer.style.display = usesSlices ? 'flex' : 'none';
     drawGuidelines();
 });
 
@@ -203,10 +205,23 @@ function draw(e) {
         ctx.shadowBlur = 0;
     }
 
-    if ('4-corner' === symmetryMode.value) {
-        drawFourCorners(lastX, lastY, pos.x, pos.y);
-    } else {
-        drawKaleidoscope(lastX, lastY, pos.x, pos.y);
+    switch (symmetryMode.value) {
+        case '4-corner':
+            drawFourCorners(lastX, lastY, pos.x, pos.y);
+            break;
+        case 'vertical':
+            drawVerticalMirror(lastX, lastY, pos.x, pos.y);
+            break;
+        case 'horizontal':
+            drawHorizontalMirror(lastX, lastY, pos.x, pos.y);
+            break;
+        case 'radial-star':
+            drawRadialStar(lastX, lastY, pos.x, pos.y);
+            break;
+        case 'kaleidoscope':
+        default:
+            drawKaleidoscope(lastX, lastY, pos.x, pos.y);
+            break;
     }
 
     lastX = pos.x;
@@ -319,12 +334,24 @@ function drawGuidelines() {
     gCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     gCtx.lineWidth = 1;
 
-    // Draw origin visual confirmation center indicator
+    // Center indicator
     gCtx.beginPath();
     gCtx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
     gCtx.stroke();
 
-    if ('4-corner' === symmetryMode.value) {
+    const mode = symmetryMode.value;
+
+    if (mode === 'vertical') {
+        gCtx.beginPath();
+        gCtx.moveTo(centerX, 0);
+        gCtx.lineTo(centerX, canvas.height);
+        gCtx.stroke();
+    } else if (mode === 'horizontal') {
+        gCtx.beginPath();
+        gCtx.moveTo(0, centerY);
+        gCtx.lineTo(canvas.width, centerY);
+        gCtx.stroke();
+    } else if (mode === '4-corner') {
         gCtx.beginPath();
         gCtx.moveTo(centerX, 0);
         gCtx.lineTo(centerX, canvas.height);
@@ -332,12 +359,13 @@ function drawGuidelines() {
         gCtx.lineTo(canvas.width, centerY);
         gCtx.stroke();
     } else {
+        // Kaleidoscope or Radial Star
         const slices = parseInt(slicesPicker.value, 10);
-        for (let i = 0; i < slices / 2; i++) {
+        for (let i = 0; i < slices; i++) {
             const rad = (2 * Math.PI / slices) * i;
             gCtx.beginPath();
-            gCtx.moveTo(centerX + 600 * Math.cos(rad), centerY + 600 * Math.sin(rad));
-            gCtx.lineTo(centerX - 600 * Math.cos(rad), centerY - 600 * Math.sin(rad));
+            gCtx.moveTo(centerX, centerY);
+            gCtx.lineTo(centerX + 600 * Math.cos(rad), centerY + 600 * Math.sin(rad));
             gCtx.stroke();
         }
     }
@@ -401,3 +429,54 @@ window.addEventListener('keyup', (e) => {
         tipText.innerHTML = 'Pro-Tip: Hold <kbd>Shift</kbd> and click anywhere on the canvas to relocate the symmetry center!';
     }
 });
+
+function drawVerticalMirror(x1, y1, x2, y2) {
+    drawLineSegment(x1, y1, x2, y2);
+    drawLineSegment(2 * centerX - x1, y1, 2 * centerX - x2, y2);
+}
+
+function drawHorizontalMirror(x1, y1, x2, y2) {
+    drawLineSegment(x1, y1, x2, y2);
+    drawLineSegment(x1, 2 * centerY - y1, x2, 2 * centerY - y2);
+}
+
+function drawRadialStar(x1, y1, x2, y2) {
+    const slices = parseInt(slicesPicker.value, 10);
+    const angle = (2 * Math.PI) / slices;
+
+    for (let i = 0; i < slices; i++) {
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle * i);
+
+        // Scale alternating slices to create the star depth
+        if (i % 2 === 1) {
+            ctx.scale(0.65, 0.65);
+        }
+
+        // Convert global mouse coordinates to rotated local coordinates
+        const rad = -angle * i;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const rx1 = x1 - centerX;
+        const ry1 = y1 - centerY;
+        const lx1 = rx1 * cos - ry1 * sin;
+        const ly1 = rx1 * sin + ry1 * cos;
+
+        const rx2 = x2 - centerX;
+        const ry2 = y2 - centerY;
+        const lx2 = rx2 * cos - ry2 * sin;
+        const ly2 = rx2 * sin + ry2 * cos;
+
+        drawLineSegment(lx1, ly1, lx2, ly2);
+
+        // Mirror the line inside the star slice if enabled
+        if (mirrorSlices.checked) {
+            ctx.scale(1, -1);
+            drawLineSegment(lx1, ly1, lx2, ly2);
+        }
+
+        ctx.restore();
+    }
+}
