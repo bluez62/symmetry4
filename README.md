@@ -8,7 +8,7 @@ To begin drawing, visit [Symmetry 4](bluez62.github.io/symmetry4/), select a bru
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## VERSION
 V1.5.0
